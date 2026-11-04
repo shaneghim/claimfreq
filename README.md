@@ -21,7 +21,7 @@ An R project that looks at how often auto insurance claims are filed, using the 
 - `01_claimfreqmodel.R`: the full analysis script
 - `interpret.qmd`: report source
 - `index.html`: the rendered report
-- `output/`: charts and tables produced by the script
+- `actual_vs_pred_by_age.png, freq_by_age.png, gam_risk_group.png...`: charts and tables produced by the script
 
 ## To rerun it
 1. Download the dataset from [https://www.kaggle.com/datasets/floser/french-motor-claims-datasets-fremtpl2fre].
