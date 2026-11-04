@@ -47,7 +47,7 @@ We can see that across all of the policies, drivers aged 18 to 24 have the highe
 [How the models compare]{.underline}
 
 | Model                 | Train deviance | Test deviance | Improvement vs. baseline |
-|-----------------------|----------------|---------------|--------------------------|
+|------------------|-----------------|-----------------|--------------------|
 | Baseline              | 0.330          | 0.333         | n/a                      |
 | Poisson GLM           | 0.319          | 0.324         | 2.89%                    |
 | Poisson GLM (no area) | 0.319          | 0.324         | 2.88%                    |
@@ -108,10 +108,14 @@ Relativity is a multiplier on claim frequency compared with a base level, while 
 
 Brand B12 is around 17% higher than B1, with its range above 1. Regular fuel is around 6% higher than diesel, with its range above 1. The other brands are close to 1, and their ranges include 1, so the data does not show a clear difference from the base B1 brand. Brand B14 has the widest range because it has the least data.
 
-[Conclusions]{.underline}
+**Conclusions**
 
 Young drivers, from 18 to 24, have about twice the claim frequency compared to any other age group; they file almost twice as many claims per year of coverage. Bonus-malus shows the largest spread of the variables when looked at by band, with the highest band claiming more than four times as often as the lowest. Both models end up beating the given flat-rate baseline; the GAM beats the GLM (4.57% vs. 2.88%) because it captures other effects, not just straight lines, especially for driver age, vehicle age, and bonus-malus. Finally, the riskiest 10% of policies have about six times the claim frequency as the least risky 10%.
 
-[Limitations]{.underline}
+**Limitations**
 
 This models claim frequency only. We don't look at pricing, which also needs the average cost per claim, so these results are only one half of a premium. Claim counts varied more than the model assumes (dispersion was at around 2.5). This was mainly for policies with under three months of exposure, where it was about 5.6 compared with about 1 or less for longer policies; that affects how certain the relativities are, not the predictions. While the model describes patterns in the data, it doesn't show that any variable causes more claims.
+
+**What's next**
+
+We should fit a Gamma GLM on the companion claim amounts file (freMTPL2sev) and combine it with the frequency model to get a pure premium, the full cost side of a price (since our results were only one half of a premium. To account for overdispersion we can refit with a quasi-Poisson or negative binomial model to see how much the extra variation changes the confidence intervals on the relativities. We should also build a ratings table to show how the premium changes for a few example drivers.
