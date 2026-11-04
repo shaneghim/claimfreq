@@ -18,7 +18,7 @@ An R project that looks at how often auto insurance claims are filed, using the 
 - The riskiest 10% of policies have about six times the claim frequency of the least risky 10%.
 
 ## Files
-- `R/01_claimfreqmodel.R`: the full analysis script
+- `01_claimfreqmodel.R`: the full analysis script
 - `interpret.qmd`: report source
 - `index.html`: the rendered report
 - `output/`: charts and tables produced by the script
