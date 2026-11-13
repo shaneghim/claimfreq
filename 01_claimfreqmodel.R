@@ -2,10 +2,10 @@ library(tidyverse)
 library(data.table)
 library(janitor)
 library(mgcv)
+model_colors <- c("Actual" = "grey55", "GAM" = "#1f4e79", "Poisson GLM" = "#7fb3d5", "Predicted" = "#1f4e79")
 
 
-
-#Main goal: we want to predict the number of insurance claims a policyholder will file based on the demographic and vehicle risk factors
+#we want to predict the number of insurance claims a policyholder will file based on the demographic and vehicle risk factors
 #claimNb is our target variable Y
 #exposure is the fraction of a year the policy was active
 insurance <- fread("data/freMTPL2freq.csv",
@@ -19,7 +19,7 @@ summary(insurance)
 insurance %>% count(claim_nb)
 colSums(is.na(insurance))
 
-#Cap check and clean while preserving og data
+#cap check and clean while preserving og data
 insurance_raw <- insurance
 
 #check how many rows each cap will change, alter values as needed
@@ -67,8 +67,9 @@ freq_by(insurance, veh_gas)
 freq_by(insurance, bm_band)
 
 #plot frequency by driver age
-p_freq_age <- ggplot(freq_age, aes(age_band, frequency)) + geom_col() + 
+p_freq_age <- ggplot(freq_age, aes(age_band, frequency)) + geom_col(fill = "grey55") + 
   labs(title = "Claim frequency by driver age",
+    subtitle = "All policies",
            x = "Driver age",
            y = "Claims per policy year") + theme_minimal()
 p_freq_age
@@ -133,7 +134,6 @@ disp_by_exposure <- train %>%
   summarise(policies = n(), dispersion = mean(pearson2))
 disp_by_exposure
 #overdispersion is real but concentrated in policies with under 3 months of cover
-#((0,0.25] => dispersion 5.62). It is 1.31, 1.00 and 0.825 in the longer exposure bands.
 
 #check how closely area tracks density
 train %>%
@@ -218,11 +218,11 @@ p_age <- test %>%
                GAM = sum(pred_gam_noarea) / sum(exposure)) %>%
   pivot_longer(-age_band, names_to = "series", values_to = "frequency") %>%
   ggplot(aes(age_band, frequency, fill = series)) +
-  geom_col(position = "dodge") +
+  geom_col(position = "dodge") + scale_fill_manual(values = model_colors) +
   labs(title = "Claim frequency by driver age",
     subtitle = "Actual vs. predicted",
            x = "Driver age",
-           y = "Claims per policy year", fill = NULL) + theme_minimal()
+           y = "Claims per policy year", fill = NULL) + theme_minimal() + theme(legend.position = "top")
 p_age
 
 #freq by risk group
@@ -232,12 +232,18 @@ p_riskgroup <- test %>%
   summarise(Actual = sum(claim_nb) / sum(exposure),
             Predicted = sum(pred_gam_noarea) / sum(exposure)) %>%
   pivot_longer(-risk_group, names_to = "series", values_to = "frequency") %>%
-  ggplot(aes(risk_group, frequency, color = series)) + geom_line() + geom_point() +
+  ggplot(aes(risk_group, frequency, color = series, shape = series)) +
+  geom_line(linewidth = 0.8) +
+  geom_point(size = 2.5, stroke = 1, fill = "white") +
   scale_x_continuous(breaks = 1:10) +
+  scale_y_continuous(breaks = seq(0, 0.3, 0.05)) +
+  scale_color_manual(values = model_colors) +
+  scale_shape_manual(values = c("Actual" = 21, "Predicted" = 16)) +
   labs(title = "GAM: actual vs. predicted",
-       subtitle = "Frequency by risk group",
-       x = "Risk group (1 = lowest predicted risk, 10 = highest)",
-       y = "Claims per policy year", color = NULL) + theme_minimal()
+    subtitle = "Frequency by risk group",
+           x = "Risk group (1 = lowest predicted risk, 10 = highest)",
+           y = "Claims per policy year",
+       color = NULL, shape = NULL) + theme_minimal() + theme(legend.position = "top")
 p_riskgroup
 
 #bonus-malus chart
@@ -248,9 +254,10 @@ p_bm <- test %>%
                GAM = sum(pred_gam_noarea) / sum(exposure)) %>%
   pivot_longer(-bm_band, names_to = "series", values_to = "frequency") %>%
   ggplot(aes(bm_band, frequency, fill = series)) + geom_col(position = "dodge") +
+  scale_fill_manual(values = model_colors) +
   labs(title = "Claim frequency by bonus-malus band",
     subtitle = "Actual vs. predicted",
-           x = "Bonus-malus", y = "Claims per policy year", fill = NULL) + theme_minimal()
+           x = "Bonus-malus", y = "Claims per policy year", fill = NULL) + theme_minimal() + theme(legend.position = "top")
 p_bm
 
 #comparison of vehicle brands and fuel type after accounting for other factors
@@ -261,33 +268,40 @@ p_relativities <- relativities %>%
   ggplot(aes(relativity, reorder(term, relativity))) + geom_pointrange(aes(xmin = lower, xmax = upper)) +
   geom_vline(xintercept = 1, linetype = "dashed") +
   labs(title = "Claim frequency relativities",
-    subtitle = "GLM (no area), with 95% intervals widened for overdispersion; 1 = reference level",
-           x = "Multiplier on claim frequency", y = NULL) + theme_minimal()
+    subtitle = "GLM without area, 95% intervals widened for overdispersion",
+     caption = "1 = reference level (Brand B1, Diesel)",
+           x = "Multiplier on claim frequency",
+           y = NULL) + theme_minimal()
 p_relativities
 
 #saving it all
-dir.create("output", showWarnings = FALSE)
-ggsave("output/freq_by_age.png", p_freq_age, width = 7, height = 5, dpi = 300, bg = "white")
-ggsave("output/actual_vs_pred_by_age.png", p_age, width = 7, height = 5, dpi = 300, bg = "white")
-ggsave("output/gam_risk_group.png", p_riskgroup, width = 7, height = 5, dpi = 300, bg = "white")
-ggsave("output/actual_vs_pred_by_bonus_malus.png", p_bm, width = 7, height = 5, dpi = 300, bg = "white")
-ggsave("output/glm_relativities.png", p_relativities, width = 7, height = 6, dpi = 300, bg = "white")
+ggsave("freq_by_age.png", p_freq_age, width = 7, height = 5, dpi = 300, bg = "white")
+ggsave("actual_vs_pred_by_age.png", p_age, width = 7, height = 5, dpi = 300, bg = "white")
+ggsave("gam_risk_group.png", p_riskgroup, width = 7, height = 5, dpi = 300, bg = "white")
+ggsave("actual_vs_pred_by_bonus_malus.png", p_bm, width = 7, height = 5, dpi = 300, bg = "white")
+ggsave("glm_relativities.png", p_relativities, width = 7, height = 6, dpi = 300, bg = "white")
 
-write_csv(cap_check, "output/cap_check.csv")
-write_csv(freq_age, "output/freq_by_age.csv")
-write_csv(disp_by_exposure, "output/dispersion_by_exposure.csv")
-write_csv(area_check, "output/area_check.csv")
-write_csv(results_final, "output/model_comparison.csv")
-write_csv(robust_long, "output/robustness_longer_policies.csv")
-write_csv(relativities, "output/glm_relativities.csv")
+write_csv(cap_check, "cap_check.csv")
+write_csv(freq_age, "freq_by_age.csv")
+write_csv(disp_by_exposure, "dispersion_by_exposure.csv")
+write_csv(area_check, "area_check.csv")
+write_csv(results_final, "model_comparison.csv")
+write_csv(robust_long, "robustness_longer_policies.csv")
+write_csv(relativities, "glm_relativities.csv")
 
-png("output/gam_smooth_effects.png", width = 1600, height = 1200, res = 200)
-plot(m_gam_noarea, pages = 1, scale = 0)
+#GAM smooth effects, one panel per variable with readable axis titles
+png("gam_smooth_effects.png", width = 1600, height = 1200, res = 200)
+par(mfrow = c(2, 2), oma = c(0, 2, 0, 0), las = 1)
+x_titles <- c("Driver age", "Vehicle age (years)", "Bonus-malus", "Population density (log)")
+for (i in 1:4) {plot(m_gam_noarea, select = i, scale = 0, xlab = x_titles[i],
+       ylab = "", shade = TRUE)
+  abline(h = 0, lty = 3)}
+mtext("Effect on claim frequency (log scale)", side = 2, outer = TRUE, las = 0)
 dev.off()
 
-saveRDS(m_gam_noarea, "output/m_gam_noarea.rds")
-writeLines(capture.output(sessionInfo()), "output/session_info.txt")
-list.files("output")
+saveRDS(m_gam_noarea, "m_gam_noarea.rds")
+writeLines(capture.output(sessionInfo()), "session_info.txt")
+list.files(pattern = "\\.(png|csv)$")
 
 #DONE
 #dropping area makes it slightly better on AIC and BIC, so drop it from final models
